@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
+import 'package:flutter/widgets.dart';
 import 'package:google_ml_kit/google_ml_kit.dart';
 import 'dart:typed_data';
 import 'dart:math' as math;
@@ -15,6 +16,7 @@ class CameraScreen extends StatefulWidget {
 }
 
 class CameraScreenState extends State<CameraScreen> {
+  Map<String, int> angles = {};
   late CameraController _cameraController;
   bool isDetecting = false;
   late PoseDetector _poseDetector;
@@ -43,7 +45,7 @@ class CameraScreenState extends State<CameraScreen> {
         : widget.cameras.firstWhere(
             (camera) => camera.lensDirection == CameraLensDirection.back);
 
-    _cameraController = CameraController(selectedCamera, ResolutionPreset.high);
+    _cameraController = CameraController(selectedCamera, ResolutionPreset.low);
     await _cameraController.initialize();
     if (mounted) {
       setState(() {});
@@ -82,7 +84,8 @@ class CameraScreenState extends State<CameraScreen> {
     try {
       final List<Pose> detectedPoses =
           await _poseDetector.processImage(inputImage);
-      Map<String, int> angles = {};
+      this.angles.clear();
+      // Map<String, int> angles = {};
       if (detectedPoses.isNotEmpty) {
         final Pose firstPose = detectedPoses.first;
         final PoseLandmark? leftShoulder =
@@ -205,7 +208,7 @@ class CameraScreenState extends State<CameraScreen> {
               getAngle(leftElbow, leftShoulder, leftHip).round();
           angles['l_shoulder'] = l_shoulder;
           print("左肩膀的角度是: $l_shoulder 度");
-          print(angles);
+          // print(angles);
         }
       }
       setState(() {
@@ -216,32 +219,46 @@ class CameraScreenState extends State<CameraScreen> {
     } finally {
       isDetecting = false;
     }
+    await checkPose();
   }
 
   // 計算角度的函式
   double getAngle(
       PoseLandmark firstPoint, PoseLandmark midPoint, PoseLandmark lastPoint) {
-    var result = (math.atan2(
-                lastPoint.x - midPoint.y, lastPoint.x - midPoint.x) -
-            math.atan2(firstPoint.y - midPoint.y, firstPoint.x - midPoint.x)) *
-        (180 / math.pi);
-    result = result.abs(); // 角度應該永遠不為負
-    if (result > 180) {
-      result = 360.0 - result; // 總是獲得角度的銳角表示
+    // 確保midPoint在firstPoint和lastPoint之間
+    if ((midPoint.x - firstPoint.x) * (lastPoint.x - firstPoint.x) +
+            (midPoint.y - firstPoint.y) * (lastPoint.y - firstPoint.y) <
+        0) {
+      final temp = firstPoint;
+      firstPoint = lastPoint;
+      lastPoint = temp;
     }
-    return result;
+
+    final result =
+        math.atan2(lastPoint.y - midPoint.y, lastPoint.x - midPoint.x) -
+            math.atan2(firstPoint.y - midPoint.y, firstPoint.x - midPoint.x);
+    final angle = result * (180 / math.pi);
+
+    return angle.abs() <= 180 ? angle.abs() : 360 - angle.abs();
   }
 
+  Widget poseTip = Text('不是 Tree Pose');
+  // Widget posecheck = Text('not enterd');
   //辨識第一階段
-  // Future<void> checkPose() async {
-  //   Map<String, int> angles = await pickImageAndDetectPose();
-  //   bool result = TreePoseOnePass(angles);
-  //   if (result) {
-  //     print("是 Tree Pose");
-  //   } else {
-  //     print("不是 Tree Pose");
-  //   }
-  // }
+  Future<void> checkPose() async {
+    // posecheck = Text("entered");
+    // Map<String, int> angles = await pickImageAndDetectPose();
+    Future.delayed(Duration(seconds: 5));
+    bool result = TreePoseOnePass(angles);
+    if (result) {
+      poseTip = Text("是 Tree Pose");
+    } else {
+      poseTip = Text("不是 Tree Pose");
+    }
+    setState(() {});
+  }
+  //辨識第二階段
+  //辨識第三階段
 
   Uint8List _concatenatePlanes(List<Plane> planes) {
     List<int> allBytes = [];
@@ -286,31 +303,52 @@ class CameraScreenState extends State<CameraScreen> {
     final size = MediaQuery.of(context).size;
 
     return Scaffold(
-      body: FittedBox(
-        fit: BoxFit.contain,
-        child: SizedBox(
-          width: _cameraController.value.previewSize!.height,
-          height: _cameraController.value.previewSize!.width,
-          child: Stack(
-            children: [
-              CameraPreview(_cameraController),
-              CustomPaint(
-                painter: PosePainter(poses, isFrontCamera),
+      body: Stack(
+        children: [
+          SizedBox.expand(
+            child: FittedBox(
+              fit: BoxFit.cover,
+              child: SizedBox(
+                width: _cameraController.value.previewSize?.height ?? 1,
+                height: _cameraController.value.previewSize?.width ?? 1,
+                child: CameraPreview(_cameraController),
               ),
-              Positioned(
-                top: 10.0,
-                left: 10.0,
-                child: Text(
-                  'FPS: ${_getFps()}',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 16.0,
-                  ),
-                ),
-              ),
-            ],
+            ),
           ),
-        ),
+          CustomPaint(
+            painter: PosePainter(poses, isFrontCamera),
+          ),
+          Positioned(top: 30.0, right: 10.0, child: poseTip),
+          Positioned(
+            top: 30.0,
+            left: 10.0,
+            child: Text(
+              'FPS: ${_getFps()}',
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 16.0,
+              ),
+            ),
+          ),
+          Positioned(
+            bottom: 0,
+            left: 0,
+            right: 0,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                for (var entry in this.angles.entries)
+                  Text(
+                    '${entry.key}: ${entry.value}度',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 16.0,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ],
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: _toggleCamera,
@@ -339,13 +377,13 @@ class PosePainter extends CustomPainter {
         double y = landmark.y;
 
         // 如果是前置摄像头，进行垂直翻转
-        if (isFrontCamera) {
-          x = size.width + 480 - x;
-        }
+        // if (isFrontCamera) {
+        x = size.width + 240 - x;
+        // }
 
         canvas.drawCircle(
           Offset(x, y),
-          5.0,
+          10.0,
           paint,
         );
       }
