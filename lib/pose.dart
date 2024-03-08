@@ -1,7 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
-import 'package:flutter/widgets.dart';
 import 'package:google_ml_kit/google_ml_kit.dart';
+import 'package:test_pose_detector/Pose_Guide/TreePose/TreePose_Guide_Three.dart';
 import 'package:test_pose_detector/Pose_Guide/TreePose/TreePose_Guide_Two.dart';
 import 'dart:typed_data';
 import 'dart:math' as math;
@@ -17,6 +19,7 @@ class CameraScreen extends StatefulWidget {
 }
 
 class CameraScreenState extends State<CameraScreen> {
+  int poseIndex = 0;
   //每個階段的PASS
   bool onePass = false;
   bool twoPass = false;
@@ -134,88 +137,87 @@ class CameraScreenState extends State<CameraScreen> {
           final int r_wrist =
               getAngle(rightIndex, rightWrist, rightElbow).round();
           angles['r_wrist'] = r_wrist;
-          print("右手腕的角度是: $r_wrist 度");
         }
         /*右手肘 */
         if (rightWrist != null && rightElbow != null && rightShoulder != null) {
           final int r_elbow =
               getAngle(rightWrist, rightElbow, rightShoulder).round();
           angles['r_elbow'] = r_elbow;
-          print("右手肘的角度是: $r_elbow 度");
         }
         /*右肩膀 */
         if (rightElbow != null && rightShoulder != null && rightHip != null) {
           final int r_shoulder =
               getAngle(rightElbow, rightShoulder, rightHip).round();
           angles['r_shoulder'] = r_shoulder;
-          print("右肩膀的角度是: $r_shoulder 度");
         }
         /*右髖部 */
         if (rightShoulder != null && rightHip != null && rightKnee != null) {
           final int r_hip =
               getAngle(rightShoulder, rightHip, rightKnee).round();
           angles['r_hip'] = r_hip;
-          print("右髖部的角度是: $r_hip 度");
         }
         /*右膝蓋 */
         if (rightHip != null && rightKnee != null && rightAnkle != null) {
           final int r_knee = getAngle(rightHip, rightKnee, rightAnkle).round();
           angles['r_knee'] = r_knee;
-          print("右膝蓋的角度是: $r_knee 度");
         }
         /*右腳踝 */
         if (rightKnee != null && rightAnkle != null && rightFootIndex != null) {
           final int r_footindex =
               getAngle(rightKnee, rightAnkle, rightFootIndex).round();
           angles['r_footindex'] = r_footindex;
-          print("右腳踝的角度是: $r_footindex 度");
         }
         /*左手腕 */
         if (leftIndex != null && leftWrist != null && leftElbow != null) {
           final int l_wrist = getAngle(leftIndex, leftWrist, leftElbow).round();
           angles['l_wrist'] = l_wrist;
-          print("左手腕的角度是: $l_wrist 度");
         }
         /*左手肘 */
         if (leftWrist != null && leftElbow != null && leftShoulder != null) {
           final int l_elbow =
               getAngle(leftWrist, leftElbow, leftShoulder).round();
           angles['l_elbow'] = l_elbow;
-          print("左手肘的角度是: $l_elbow 度");
         }
         /*左肩膀 */
         if (leftElbow != null && leftShoulder != null && leftHip != null) {
           final int l_shoulder =
               getAngle(leftElbow, leftShoulder, leftHip).round();
           angles['l_shoulder'] = l_shoulder;
-          print("左肩膀的角度是: $l_shoulder 度");
         }
         /*左髖部 */
         if (leftShoulder != null && leftHip != null && leftKnee != null) {
           final int l_hip = getAngle(leftShoulder, leftHip, leftKnee).round();
           angles['l_hip'] = l_hip;
-          print("左髖部的角度是: $l_hip 度");
         }
         /*左膝蓋 */
         if (leftHip != null && leftKnee != null && leftAnkle != null) {
           final int l_knee = getAngle(leftHip, leftKnee, leftAnkle).round();
           angles['l_knee'] = l_knee;
-          print("左膝蓋的角度是: $l_knee 度");
         }
         /*左腳踝 */
         if (leftKnee != null && leftAnkle != null && leftFootIndex != null) {
           final int l_footindex =
               getAngle(leftKnee, leftAnkle, leftFootIndex).round();
           angles['l_footindex'] = l_footindex;
-          print("左腳踝的角度是: $l_footindex 度");
         }
         if (leftElbow != null && leftShoulder != null && leftHip != null) {
           final int l_shoulder =
               getAngle(leftElbow, leftShoulder, leftHip).round();
           angles['l_shoulder'] = l_shoulder;
-          print("左肩膀的角度是: $l_shoulder 度");
-          // print(angles);
         }
+        // 集中輸出所有 print 語句
+        print("右手腕的角度是: ${angles['r_wrist']} 度");
+        print("右手肘的角度是: ${angles['r_elbow']} 度");
+        print("右肩膀的角度是: ${angles['r_shoulder']} 度");
+        print("右髖部的角度是: ${angles['r_hip']} 度");
+        print("右膝蓋的角度是: ${angles['r_knee']} 度");
+        print("右腳踝的角度是: ${angles['r_footindex']} 度");
+        print("左手腕的角度是: ${angles['l_wrist']} 度");
+        print("左手肘的角度是: ${angles['l_elbow']} 度");
+        print("左肩膀的角度是: ${angles['l_shoulder']} 度");
+        print("左髖部的角度是: ${angles['l_hip']} 度");
+        print("左膝蓋的角度是: ${angles['l_knee']} 度");
+        print("左腳踝的角度是: ${angles['l_footindex']} 度");
       }
       setState(() {
         poses = detectedPoses;
@@ -225,50 +227,59 @@ class CameraScreenState extends State<CameraScreen> {
     } finally {
       isDetecting = false;
     }
-    //
     checkPoses();
-    // await onePassCheck();
-    // //應該要確認是完成的才進行下一步 不是成功就好
-    // await twoPassCheck();
   }
 
   //循序跑完三個檢查點
+  bool _shouldUpdateUI = false;
+
   Future<void> checkPoses() async {
-    _checkPoseRecursive(0);
+    _shouldUpdateUI = false;
+    _checkPoseRecursive(poseIndex);
   }
 
   Future<void> _checkPoseRecursive(int poseIndex) async {
     bool result;
+    Stopwatch stopwatch = Stopwatch();
+    int errorCount = 0; // 新增一個計數器來記錄錯誤次數
+    const int maxErrorCount = 5; // 設置最大允許錯誤次數
 
     switch (poseIndex) {
       case 0:
-        result = await TreePoseOnePass(angles);
+        stopwatch.reset();
+        while (true) {
+          result = await TreePoseOnePass(angles);
+          if (result) {
+            errorCount = 0; // 如果檢測正確,重置錯誤計數器
+            stopwatch.start();
+            if (stopwatch.elapsed.inSeconds >= 3) {
+              stopwatch.stop();
+              break;
+            }
+          } else {
+            print(errorCount);
+            errorCount++; // 如果檢測錯誤,錯誤計數器加1
+            if (errorCount >= maxErrorCount) {
+              // 如果錯誤次數超過最大允許次數,重置計時器
+              stopwatch.reset();
+              errorCount = 0;
+            }
+          }
+          await Future.delayed(Duration(milliseconds: 100));
+        }
         break;
       case 1:
         result = await TreePoseTwoPass(angles);
         break;
-      // case 2:
-      //   result = await threePassCheck();
-      //   break;
+      case 2:
+        result = await TreePoseThreePass(angles);
+        break;
       default:
         return; // 所有動作檢查完畢,退出遞迴
     }
 
-    if (result) {
-      // 當前動作檢查通過, 進入下一個動作檢查
-      if (poseIndex < 2) {
-        // 假設您總共有 3 個動作要檢查，編號為 0, 1, 2
-        _checkPoseRecursive(poseIndex + 1);
-      }
-      poseTip = Text("這是TreePose$poseIndex");
-      setState(() {});
-    } else {
-      // 當前動作未達標,稍後再次檢查
-      Future.delayed(
-          Duration(seconds: 1), () => _checkPoseRecursive(poseIndex));
-      poseTip = Text("不是正確的動作 $poseIndex，稍後將重新檢查");
-      setState(() {});
-    }
+    // 其餘代碼與之前相同
+    // ...
   }
 
   // 計算角度的函式
@@ -292,54 +303,6 @@ class CameraScreenState extends State<CameraScreen> {
   }
 
   Widget poseTip = Text('不是 Tree Pose');
-  // Widget posecheck = Text('not enterd');
-  //辨識第一階段
-  Future<void> onePassCheck() async {
-    // posecheck = Text("entered");
-    // Map<String, int> angles = await pickImageAndDetectPose();
-    Future.delayed(Duration(seconds: 5));
-    bool result = TreePoseOnePass(angles);
-    if (result) {
-      poseTip = Text("是 Tree Pose One");
-      onePass = true;
-    } else {
-      poseTip = Text("是 Tree Pose One");
-      onePass = false;
-    }
-    setState(() {});
-  }
-
-  //辨識第二階段
-  Future<void> twoPassCheck() async {
-    // posecheck = Text("entered");
-    // Map<String, int> angles = await pickImageAndDetectPose();
-    Future.delayed(Duration(seconds: 5));
-    bool result = TreePoseTwoPass(angles);
-    if (result) {
-      poseTip = Text("是 Tree Pose Two");
-      twoPass = true;
-    } else {
-      poseTip = Text("不是 Tree Pose Two");
-      twoPass = false;
-    }
-    setState(() {});
-  }
-
-  //辨識第三階段
-  // Future<void> threePassCheck() async {
-  //   // posecheck = Text("entered");
-  //   // Map<String, int> angles = await pickImageAndDetectPose();
-  //   Future.delayed(Duration(seconds: 5));
-  //   bool result = TreePoseOnePass(angles);
-  //   if (result) {
-  //     poseTip = Text("是 Tree Pose");
-  //     onePass = true;
-  //   } else {
-  //     poseTip = Text("不是 Tree Pose");
-  //     onePass = false;
-  //   }
-  //   setState(() {});
-  // }
 
   Uint8List _concatenatePlanes(List<Plane> planes) {
     List<int> allBytes = [];
@@ -349,6 +312,7 @@ class CameraScreenState extends State<CameraScreen> {
     return Uint8List.fromList(allBytes);
   }
 
+//更新率計算
   String _getFps() {
     DateTime currentTime = DateTime.now();
     double currentFps = _lastFrameTime != null
@@ -368,6 +332,7 @@ class CameraScreenState extends State<CameraScreen> {
     return _fpsAverage.toStringAsFixed(1);
   }
 
+//放棄資源
   @override
   void dispose() {
     _cameraController.dispose();
@@ -381,7 +346,7 @@ class CameraScreenState extends State<CameraScreen> {
       return Container();
     }
 
-    final size = MediaQuery.of(context).size;
+    //final size = MediaQuery.of(context).size;
 
     return Scaffold(
       body: Stack(
@@ -399,7 +364,11 @@ class CameraScreenState extends State<CameraScreen> {
           CustomPaint(
             painter: PosePainter(poses, isFrontCamera),
           ),
-          Positioned(top: 30.0, right: 10.0, child: poseTip),
+          Positioned(
+            top: 30.0,
+            right: 10.0,
+            child: poseTip,
+          ),
           Positioned(
             top: 30.0,
             left: 10.0,
