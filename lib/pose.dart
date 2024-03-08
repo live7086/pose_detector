@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 import 'package:flutter/widgets.dart';
 import 'package:google_ml_kit/google_ml_kit.dart';
+import 'package:test_pose_detector/Pose_Guide/TreePose/TreePose_Guide_Two.dart';
 import 'dart:typed_data';
 import 'dart:math' as math;
 import 'Pose_Guide/TreePose/TreePose_Guide_One.dart';
@@ -16,12 +17,18 @@ class CameraScreen extends StatefulWidget {
 }
 
 class CameraScreenState extends State<CameraScreen> {
+  //每個階段的PASS
+  bool onePass = false;
+  bool twoPass = false;
+  bool threePass = false;
+  //
   Map<String, int> angles = {};
   late CameraController _cameraController;
   bool isDetecting = false;
   late PoseDetector _poseDetector;
   List<Pose> poses = [];
   bool isFrontCamera = false;
+  //fps設定
   double _fpsAverage = 0.0;
   int _fpsCounter = 0;
   DateTime? _lastFrameTime;
@@ -65,7 +72,6 @@ class CameraScreenState extends State<CameraScreen> {
     });
   }
 
-  int num3 = 1;
   Future<void> _detectPose(CameraImage image, bool isFrontCamera) async {
     final InputImageRotation rotation = isFrontCamera
         ? InputImageRotation.rotation270deg // 前置摄像头
@@ -219,7 +225,50 @@ class CameraScreenState extends State<CameraScreen> {
     } finally {
       isDetecting = false;
     }
-    await checkPose();
+    //
+    checkPoses();
+    // await onePassCheck();
+    // //應該要確認是完成的才進行下一步 不是成功就好
+    // await twoPassCheck();
+  }
+
+  //循序跑完三個檢查點
+  Future<void> checkPoses() async {
+    _checkPoseRecursive(0);
+  }
+
+  Future<void> _checkPoseRecursive(int poseIndex) async {
+    bool result;
+
+    switch (poseIndex) {
+      case 0:
+        result = await TreePoseOnePass(angles);
+        break;
+      case 1:
+        result = await TreePoseTwoPass(angles);
+        break;
+      // case 2:
+      //   result = await threePassCheck();
+      //   break;
+      default:
+        return; // 所有動作檢查完畢,退出遞迴
+    }
+
+    if (result) {
+      // 當前動作檢查通過, 進入下一個動作檢查
+      if (poseIndex < 2) {
+        // 假設您總共有 3 個動作要檢查，編號為 0, 1, 2
+        _checkPoseRecursive(poseIndex + 1);
+      }
+      poseTip = Text("這是TreePose$poseIndex");
+      setState(() {});
+    } else {
+      // 當前動作未達標,稍後再次檢查
+      Future.delayed(
+          Duration(seconds: 1), () => _checkPoseRecursive(poseIndex));
+      poseTip = Text("不是正確的動作 $poseIndex，稍後將重新檢查");
+      setState(() {});
+    }
   }
 
   // 計算角度的函式
@@ -245,20 +294,52 @@ class CameraScreenState extends State<CameraScreen> {
   Widget poseTip = Text('不是 Tree Pose');
   // Widget posecheck = Text('not enterd');
   //辨識第一階段
-  Future<void> checkPose() async {
+  Future<void> onePassCheck() async {
     // posecheck = Text("entered");
     // Map<String, int> angles = await pickImageAndDetectPose();
     Future.delayed(Duration(seconds: 5));
     bool result = TreePoseOnePass(angles);
     if (result) {
-      poseTip = Text("是 Tree Pose");
+      poseTip = Text("是 Tree Pose One");
+      onePass = true;
     } else {
-      poseTip = Text("不是 Tree Pose");
+      poseTip = Text("是 Tree Pose One");
+      onePass = false;
     }
     setState(() {});
   }
+
   //辨識第二階段
+  Future<void> twoPassCheck() async {
+    // posecheck = Text("entered");
+    // Map<String, int> angles = await pickImageAndDetectPose();
+    Future.delayed(Duration(seconds: 5));
+    bool result = TreePoseTwoPass(angles);
+    if (result) {
+      poseTip = Text("是 Tree Pose Two");
+      twoPass = true;
+    } else {
+      poseTip = Text("不是 Tree Pose Two");
+      twoPass = false;
+    }
+    setState(() {});
+  }
+
   //辨識第三階段
+  // Future<void> threePassCheck() async {
+  //   // posecheck = Text("entered");
+  //   // Map<String, int> angles = await pickImageAndDetectPose();
+  //   Future.delayed(Duration(seconds: 5));
+  //   bool result = TreePoseOnePass(angles);
+  //   if (result) {
+  //     poseTip = Text("是 Tree Pose");
+  //     onePass = true;
+  //   } else {
+  //     poseTip = Text("不是 Tree Pose");
+  //     onePass = false;
+  //   }
+  //   setState(() {});
+  // }
 
   Uint8List _concatenatePlanes(List<Plane> planes) {
     List<int> allBytes = [];
