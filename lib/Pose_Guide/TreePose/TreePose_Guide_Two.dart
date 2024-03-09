@@ -7,9 +7,9 @@ bool TreePoseTwoPass(Map<String, int> angles) {
   const int r_hip_perfect_max = 100;
   const int r_hip_good_max = r_hip_perfect_max + 20;
   // r_knee angle
-  const int r_knee_perfect_min = 80;
+  const int r_knee_perfect_min = 20;
   const int r_knee_good_min = r_knee_perfect_min - 20;
-  const int r_knee_perfect_max = 90;
+  const int r_knee_perfect_max = 40;
   const int r_knee_good_max = r_knee_perfect_max + 20;
 
   // 假設 "右膝" 是判斷 Tree Pose 的關鍵角度之一

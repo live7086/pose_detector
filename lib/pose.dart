@@ -19,25 +19,28 @@ class CameraScreen extends StatefulWidget {
 }
 
 class CameraScreenState extends State<CameraScreen> {
-  int poseIndex = 0;
-  //每個階段的PASS
-  bool onePass = false;
-  bool twoPass = false;
-  bool threePass = false;
+  bool ischeckPoseLooping = false;
+  String poseTip = '';
   //
-  Map<String, int> angles = {};
-  late CameraController _cameraController;
+  bool _shouldUpdateUI = false;
+  int poseIndex = 0; // 記錄當前完成的最高動作階段
+  //每個階段的PASS
   bool isDetecting = false;
+  //googlemlkit相關，動作角度座標等等
+  Map<String, int> angles = {};
   late PoseDetector _poseDetector;
   List<Pose> poses = [];
+  //相機相關
+  late CameraController _cameraController;
   bool isFrontCamera = false;
   //fps設定
   double _fpsAverage = 0.0;
   int _fpsCounter = 0;
   DateTime? _lastFrameTime;
-
+  //初始化camera 以及 poseDetector
   @override
   void initState() {
+    print("initState poseIndex$poseIndex");
     super.initState();
     _initializeCamera();
     _poseDetector = PoseDetector(
@@ -48,17 +51,21 @@ class CameraScreenState extends State<CameraScreen> {
     );
   }
 
+  //實作初始化相機
   Future<void> _initializeCamera() async {
+    print("initCamera poseIndex$poseIndex");
+
     final CameraDescription selectedCamera = isFrontCamera
         ? widget.cameras.firstWhere(
             (camera) => camera.lensDirection == CameraLensDirection.front)
         : widget.cameras.firstWhere(
             (camera) => camera.lensDirection == CameraLensDirection.back);
 
-    _cameraController = CameraController(selectedCamera, ResolutionPreset.low);
+    _cameraController = CameraController(selectedCamera, ResolutionPreset.high);
     await _cameraController.initialize();
+    //如果初始化了
     if (mounted) {
-      setState(() {});
+      setState(() {}); //更新widget
       _cameraController.startImageStream((CameraImage image) {
         if (!isDetecting) {
           isDetecting = true;
@@ -76,6 +83,8 @@ class CameraScreenState extends State<CameraScreen> {
   }
 
   Future<void> _detectPose(CameraImage image, bool isFrontCamera) async {
+    print("_detectPose poseIndex$poseIndex");
+
     final InputImageRotation rotation = isFrontCamera
         ? InputImageRotation.rotation270deg // 前置摄像头
         : InputImageRotation.rotation90deg; // 后置摄像头
@@ -95,6 +104,7 @@ class CameraScreenState extends State<CameraScreen> {
           await _poseDetector.processImage(inputImage);
       this.angles.clear();
       // Map<String, int> angles = {};
+      //把所有的landmark抓取成變數
       if (detectedPoses.isNotEmpty) {
         final Pose firstPose = detectedPoses.first;
         final PoseLandmark? leftShoulder =
@@ -131,7 +141,7 @@ class CameraScreenState extends State<CameraScreen> {
             firstPose.landmarks[PoseLandmarkType.rightIndex];
         final PoseLandmark? rightFootIndex =
             firstPose.landmarks[PoseLandmarkType.rightFootIndex];
-
+        //開始計算身體各點的角度 變儲存
         /*右手腕 */
         if (rightIndex != null && rightWrist != null && rightElbow != null) {
           final int r_wrist =
@@ -161,7 +171,7 @@ class CameraScreenState extends State<CameraScreen> {
           final int r_knee = getAngle(rightHip, rightKnee, rightAnkle).round();
           angles['r_knee'] = r_knee;
         }
-        /*右腳踝 */
+        /*右腳趾 */
         if (rightKnee != null && rightAnkle != null && rightFootIndex != null) {
           final int r_footindex =
               getAngle(rightKnee, rightAnkle, rightFootIndex).round();
@@ -194,30 +204,27 @@ class CameraScreenState extends State<CameraScreen> {
           final int l_knee = getAngle(leftHip, leftKnee, leftAnkle).round();
           angles['l_knee'] = l_knee;
         }
-        /*左腳踝 */
+        /*左腳趾 */
         if (leftKnee != null && leftAnkle != null && leftFootIndex != null) {
           final int l_footindex =
               getAngle(leftKnee, leftAnkle, leftFootIndex).round();
           angles['l_footindex'] = l_footindex;
         }
-        if (leftElbow != null && leftShoulder != null && leftHip != null) {
-          final int l_shoulder =
-              getAngle(leftElbow, leftShoulder, leftHip).round();
-          angles['l_shoulder'] = l_shoulder;
-        }
         // 集中輸出所有 print 語句
-        print("右手腕的角度是: ${angles['r_wrist']} 度");
-        print("右手肘的角度是: ${angles['r_elbow']} 度");
-        print("右肩膀的角度是: ${angles['r_shoulder']} 度");
-        print("右髖部的角度是: ${angles['r_hip']} 度");
-        print("右膝蓋的角度是: ${angles['r_knee']} 度");
-        print("右腳踝的角度是: ${angles['r_footindex']} 度");
-        print("左手腕的角度是: ${angles['l_wrist']} 度");
-        print("左手肘的角度是: ${angles['l_elbow']} 度");
-        print("左肩膀的角度是: ${angles['l_shoulder']} 度");
-        print("左髖部的角度是: ${angles['l_hip']} 度");
-        print("左膝蓋的角度是: ${angles['l_knee']} 度");
-        print("左腳踝的角度是: ${angles['l_footindex']} 度");
+        Future.delayed(Duration(seconds: 1));
+        // print("右手腕的角度是: ${angles['r_wrist']} 度");
+        // print("右手肘的角度是: ${angles['r_elbow']} 度");
+        // print("右肩膀的角度是: ${angles['r_shoulder']} 度");
+        // print("右髖部的角度是: ${angles['r_hip']} 度");
+        // print("右膝蓋的角度是: ${angles['r_knee']} 度");
+        // print("右腳趾的角度是: ${angles['r_footindex']} 度");
+        // print("左手腕的角度是: ${angles['l_wrist']} 度");
+        // print("左手肘的角度是: ${angles['l_elbow']} 度");
+        // print("左肩膀的角度是: ${angles['l_shoulder']} 度");
+        // print("左髖部的角度是: ${angles['l_hip']} 度");
+        // print("左膝蓋的角度是: ${angles['l_knee']} 度");
+        // print("左腳趾的角度是: ${angles['l_footindex']} 度");
+        // print("/n");
       }
       setState(() {
         poses = detectedPoses;
@@ -231,78 +238,61 @@ class CameraScreenState extends State<CameraScreen> {
   }
 
   //循序跑完三個檢查點
-  bool _shouldUpdateUI = false;
 
   Future<void> checkPoses() async {
+    print("checkPoses poseIndex$poseIndex");
+
     _shouldUpdateUI = false;
-    _checkPoseRecursive(poseIndex);
+    await _checkPose(poseIndex); // 從第一個動作開始檢查
   }
 
-  Future<void> _checkPoseRecursive(int poseIndex) async {
-    bool result;
-    Stopwatch stopwatch = Stopwatch();
-    int errorCount = 0; // 新增一個計數器來記錄錯誤次數
-    const int maxErrorCount = 5; // 設置最大允許錯誤次數
+  Future<void> _checkPose(int poseIndex) async {
+    if (!ischeckPoseLooping) {
+      print("_checkPoses poseIndex$poseIndex");
+      bool result;
+      String poseTipText = '';
 
-    switch (poseIndex) {
-      case 0:
-        stopwatch.reset();
-        while (true) {
+      switch (poseIndex) {
+        case 0:
           result = await TreePoseOnePass(angles);
-          if (result) {
-            errorCount = 0; // 如果檢測正確,重置錯誤計數器
-            stopwatch.start();
-            if (stopwatch.elapsed.inSeconds >= 3) {
-              stopwatch.stop();
-              break;
-            }
-          } else {
-            print(errorCount);
-            errorCount++; // 如果檢測錯誤,錯誤計數器加1
-            if (errorCount >= maxErrorCount) {
-              // 如果錯誤次數超過最大允許次數,重置計時器
-              stopwatch.reset();
-              errorCount = 0;
-            }
-          }
-          await Future.delayed(Duration(milliseconds: 100));
+          poseTipText = '這是TreePose0';
+          break;
+        case 1:
+          result = await TreePoseTwoPass(angles);
+          poseTipText = '這是TreePose1';
+          break;
+        case 2:
+          result = await TreePoseThreePass(angles);
+          poseTipText = '這是TreePose2';
+          break;
+        default:
+          return;
+      }
+
+      if (result) {
+        // 當前動作檢查通過
+        if (poseIndex < 2) {
+          // 進入下一個動作檢查
+          poseTip = '$poseTipText通過，進入下一個動作';
+          setState(() {});
+          await Future.delayed(Duration(milliseconds: 700));
+          await _checkPose(poseIndex + 1);
+        } else {
+          // 所有階段都通過
+          poseTip = '$poseTipText通過，所有動作完成';
+          setState(() {});
         }
-        break;
-      case 1:
-        result = await TreePoseTwoPass(angles);
-        break;
-      case 2:
-        result = await TreePoseThreePass(angles);
-        break;
-      default:
-        return; // 所有動作檢查完畢,退出遞迴
+      } else {
+        // 當前動作未達標
+        poseTip = '$poseTipText未通過，請重試';
+        setState(() {});
+        await Future.delayed(Duration(milliseconds: 700));
+        await _checkPose(poseIndex); // 重試當前階段
+      }
+    } else {
+      return;
     }
-
-    // 其餘代碼與之前相同
-    // ...
   }
-
-  // 計算角度的函式
-  double getAngle(
-      PoseLandmark firstPoint, PoseLandmark midPoint, PoseLandmark lastPoint) {
-    // 確保midPoint在firstPoint和lastPoint之間
-    if ((midPoint.x - firstPoint.x) * (lastPoint.x - firstPoint.x) +
-            (midPoint.y - firstPoint.y) * (lastPoint.y - firstPoint.y) <
-        0) {
-      final temp = firstPoint;
-      firstPoint = lastPoint;
-      lastPoint = temp;
-    }
-
-    final result =
-        math.atan2(lastPoint.y - midPoint.y, lastPoint.x - midPoint.x) -
-            math.atan2(firstPoint.y - midPoint.y, firstPoint.x - midPoint.x);
-    final angle = result * (180 / math.pi);
-
-    return angle.abs() <= 180 ? angle.abs() : 360 - angle.abs();
-  }
-
-  Widget poseTip = Text('不是 Tree Pose');
 
   Uint8List _concatenatePlanes(List<Plane> planes) {
     List<int> allBytes = [];
@@ -346,7 +336,7 @@ class CameraScreenState extends State<CameraScreen> {
       return Container();
     }
 
-    //final size = MediaQuery.of(context).size;
+    final size = MediaQuery.of(context).size;
 
     return Scaffold(
       body: Stack(
@@ -367,7 +357,12 @@ class CameraScreenState extends State<CameraScreen> {
           Positioned(
             top: 30.0,
             right: 10.0,
-            child: poseTip,
+            child: Text(
+              poseTip,
+              style: TextStyle(
+                color: Colors.white,
+              ),
+            ),
           ),
           Positioned(
             top: 30.0,
@@ -430,10 +425,9 @@ class PosePainter extends CustomPainter {
         // if (isFrontCamera) {
         x = size.width + 240 - x;
         // }
-
         canvas.drawCircle(
           Offset(x, y),
-          10.0,
+          2.0,
           paint,
         );
       }
@@ -444,4 +438,24 @@ class PosePainter extends CustomPainter {
   bool shouldRepaint(CustomPainter oldDelegate) {
     return true;
   }
+}
+
+// 計算角度的函式
+double getAngle(
+    PoseLandmark firstPoint, PoseLandmark midPoint, PoseLandmark lastPoint) {
+  // 確保midPoint在firstPoint和lastPoint之間
+  if ((midPoint.x - firstPoint.x) * (lastPoint.x - firstPoint.x) +
+          (midPoint.y - firstPoint.y) * (lastPoint.y - firstPoint.y) <
+      0) {
+    final temp = firstPoint;
+    firstPoint = lastPoint;
+    lastPoint = temp;
+  }
+
+  final result =
+      math.atan2(lastPoint.y - midPoint.y, lastPoint.x - midPoint.x) -
+          math.atan2(firstPoint.y - midPoint.y, firstPoint.x - midPoint.x);
+  final angle = result * (180 / math.pi);
+
+  return angle.abs() <= 180 ? angle.abs() : 360 - angle.abs();
 }
