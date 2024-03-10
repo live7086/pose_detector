@@ -8,6 +8,7 @@ import 'package:test_pose_detector/Pose_Guide/TreePose/TreePose_Guide_Two.dart';
 import 'dart:typed_data';
 import 'dart:math' as math;
 import 'Pose_Guide/TreePose/TreePose_Guide_One.dart';
+import 'package:flutter_tts/flutter_tts.dart';
 
 class CameraScreen extends StatefulWidget {
   final List<CameraDescription> cameras;
@@ -19,6 +20,8 @@ class CameraScreen extends StatefulWidget {
 }
 
 class CameraScreenState extends State<CameraScreen> {
+  FlutterTts flutterTts = FlutterTts();
+
   bool ischeckPoseLooping = false;
   String poseTip = '';
   //
@@ -40,7 +43,7 @@ class CameraScreenState extends State<CameraScreen> {
   //初始化camera 以及 poseDetector
   @override
   void initState() {
-    print("initState poseIndex$poseIndex");
+    //print("initState poseIndex$poseIndex");
     super.initState();
     _initializeCamera();
     _poseDetector = PoseDetector(
@@ -54,7 +57,7 @@ class CameraScreenState extends State<CameraScreen> {
 
   //實作初始化相機
   Future<void> _initializeCamera() async {
-    print("initCamera poseIndex$poseIndex");
+    // print("initCamera poseIndex$poseIndex");
 
     final CameraDescription selectedCamera = isFrontCamera
         ? widget.cameras.firstWhere(
@@ -84,7 +87,7 @@ class CameraScreenState extends State<CameraScreen> {
   }
 
   Future<void> _detectPose(CameraImage image, bool isFrontCamera) async {
-    print("_detectPose poseIndex$poseIndex");
+    // print("_detectPose poseIndex$poseIndex");
 
     final InputImageRotation rotation = isFrontCamera
         ? InputImageRotation.rotation270deg // 前置摄像头
@@ -240,30 +243,48 @@ class CameraScreenState extends State<CameraScreen> {
   //循序跑完三個檢查點
 
   Future<void> checkPoses() async {
-    print("checkPoses poseIndex$poseIndex");
+    //print("checkPoses poseIndex$poseIndex");
 
     _shouldUpdateUI = false;
     await _checkPose(poseIndex); // 從第一個動作開始檢查
   }
 
   Future<void> _checkPose(int poseIndex) async {
+    await flutterTts.setLanguage("zh-TW"); // 設置語音為 "Karen" 的英語(澳大利亞)語音
+    await flutterTts
+        .setVoice({"name": "en-in-x-end-network", "locale": "en-IN"}); //男生聲音-粗曠
+    // await flutterTts.setVoice(
+    //     {"name": "cmn-tw-x-ctd-network", "locale": "zh-TW"}); //男生聲音-粗曠
+    // await flutterTts.setVoice(
+    //     {"name": "cmn-tw-x-cte-network", "locale": "zh-TW"}); //男生聲音-官腔
+    // await flutterTts.setVoice(
+    //     {"name": "cmn-tw-x-ctc-network", "locale": "zh-TW"}); //女生聲音-溫柔
+
+    // // 獲取所有可用語音
+    // List<dynamic> voices = await flutterTts.getVoices;
+
+    // // 打印語音信息
+    // for (var voice in voices) {
+    //   print(voice);
+    // }
+
     if (!ischeckPoseLooping) {
-      print("_checkPoses poseIndex$poseIndex");
+      //print("_checkPoses poseIndex$poseIndex");
       bool result;
       String poseTipText = '';
 
       switch (poseIndex) {
         case 0:
           result = await TreePoseOnePass(angles);
-          poseTipText = '這是TreePose0';
+          poseTipText = 'This is TreePose0';
           break;
         case 1:
           result = await TreePoseTwoPass(angles);
-          poseTipText = '這是TreePose1';
+          poseTipText = 'This is TreePose1';
           break;
         case 2:
           result = await TreePoseThreePass(angles);
-          poseTipText = '這是TreePose2';
+          poseTipText = 'This is TreePose2';
           break;
         default:
           return;
@@ -274,17 +295,25 @@ class CameraScreenState extends State<CameraScreen> {
         if (poseIndex < 2) {
           // 進入下一個動作檢查
           poseTip = '$poseTipText通過，進入下一個動作';
+          flutterTts.speak(poseTip);
+          await Future.delayed(Duration(seconds: 5));
           setState(() {});
           await Future.delayed(Duration(milliseconds: 700));
           await _checkPose(poseIndex + 1);
         } else {
           // 所有階段都通過
           poseTip = '$poseTipText通過，所有動作完成';
+          flutterTts.speak(poseTip);
+          await Future.delayed(Duration(seconds: 3));
+          flutterTts.speak("KongShi KongShi");
+          await Future.delayed(Duration(seconds: 5));
           setState(() {});
         }
       } else {
         // 當前動作未達標
         poseTip = '$poseTipText未通過，請重試';
+        flutterTts.speak(poseTip);
+        await Future.delayed(Duration(seconds: 5));
         setState(() {});
         await Future.delayed(Duration(milliseconds: 700));
         await _checkPose(poseIndex); // 重試當前階段
@@ -325,6 +354,7 @@ class CameraScreenState extends State<CameraScreen> {
 //放棄資源
   @override
   void dispose() {
+    flutterTts.stop();
     _cameraController.dispose();
     _poseDetector.close();
     super.dispose();
