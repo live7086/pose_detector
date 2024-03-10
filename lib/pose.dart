@@ -49,6 +49,7 @@ class CameraScreenState extends State<CameraScreen> {
         mode: PoseDetectionMode.stream,
       ),
     );
+    checkPoses();
   }
 
   //實作初始化相機
@@ -234,7 +235,6 @@ class CameraScreenState extends State<CameraScreen> {
     } finally {
       isDetecting = false;
     }
-    checkPoses();
   }
 
   //循序跑完三個檢查點

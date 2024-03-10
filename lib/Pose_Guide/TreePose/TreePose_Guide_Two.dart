@@ -18,16 +18,14 @@ bool TreePoseTwoPass(Map<String, int> angles) {
     int r_hip = angles['r_hip']!;
     // Angles In Perfect Level
     if (r_knee >= r_knee_perfect_min &&
-            r_knee <=
-                r_knee_perfect_max /*&&
-        r_hip >= r_hip_perfect_min && r_hip <= r_hip_perfect_max */
-        ) {
+        r_knee <= r_knee_perfect_max &&
+        r_hip >= r_hip_perfect_min &&
+        r_hip <= r_hip_perfect_max) {
       return true; // 符合 Tree Pose 的條件
     } else if (r_knee >= r_knee_good_min &&
-            r_knee <=
-                r_knee_good_max /*&&
-        r_hip >= r_hip_good_min && r_hip <= r_hip_good_max */
-        ) {
+        r_knee <= r_knee_good_max &&
+        r_hip >= r_hip_good_min &&
+        r_hip <= r_hip_good_max) {
       // Angles In Good Level
       return true;
     } else {
