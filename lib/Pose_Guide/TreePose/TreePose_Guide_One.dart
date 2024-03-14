@@ -29,7 +29,7 @@ bool TreePoseOnePass(Map<String, int> angles) {
       // Angles In Good Level
       return true;
     } else {
-      return true; // 不符合條件
+      return false; // 不符合條件
     }
   }
   return false; // 不符合條件
