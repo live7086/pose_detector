@@ -255,10 +255,10 @@ class CameraScreenState extends State<CameraScreen> {
   Future<void> _checkPose(int poseIndex) async {
     // 設置語音的語言和聲音
     await flutterTts.setLanguage("zh-TW"); // 設置語音為 "Karen" 的英語(澳大利亞)語音
-    await flutterTts
-        .setVoice({"name": "en-in-x-end-network", "locale": "en-IN"}); //男生聲音-粗曠
-    // await flutterTts.setVoice(
-    //     {"name": "cmn-tw-x-ctd-network", "locale": "zh-TW"}); //男生聲音-粗曠
+    // await flutterTts
+    //     .setVoice({"name": "en-in-x-end-network", "locale": "en-IN"}); //印度口音-男生
+    await flutterTts.setVoice(
+        {"name": "cmn-tw-x-ctd-network", "locale": "zh-TW"}); //男生聲音-粗曠
     // await flutterTts.setVoice(
     //     {"name": "cmn-tw-x-cte-network", "locale": "zh-TW"}); //男生聲音-官腔
     // await flutterTts.setVoice(
@@ -282,50 +282,79 @@ class CameraScreenState extends State<CameraScreen> {
         case 0:
           // 檢查第一個樹式姿勢是否需要修正
           correctionTip = checkTreePoseOneNeedsCorrection(angles);
-          if (correctionTip.isNotEmpty) {
-            // 如果需要修正,提供修正建議並重試當前階段
-            poseTip = correctionTip;
-            flutterTts.speak(poseTip);
-            await Future.delayed(Duration(seconds: 4));
-            setState(() {});
-            await Future.delayed(Duration(milliseconds: 700));
-            await _checkPose(poseIndex);
+          //直到提示不同才做語音提醒
+          if (correctionTip != poseTip) {
+            if (correctionTip.isNotEmpty) {
+              // 如果需要修正,提供修正建議並重試當前階段
+              poseTip = correctionTip;
+              flutterTts.speak(poseTip);
+              await Future.delayed(Duration(seconds: 6));
+              setState(() {});
+              await Future.delayed(Duration(milliseconds: 700));
+              await _checkPose(poseIndex);
+            } else {
+              // 如果不需要修正,執行原有的姿勢檢查邏輯
+              result = await TreePoseOnePass(angles);
+              poseTipText = '這是 Tree Pose 0';
+            }
+            break;
           } else {
-            // 如果不需要修正,執行原有的姿勢檢查邏輯
-            result = await TreePoseOnePass(angles);
-            poseTipText = 'This is TreePose0';
+            //不然就等一下再檢查一次
+            await Future.delayed(Duration(seconds: 2));
+            poseTipText = '這是 Tree Pose 0';
+            break;
           }
-          break;
+
         case 1:
           // 檢查第二個樹式姿勢是否需要修正
           correctionTip = checkTreePoseTwoNeedsCorrection(angles);
-          if (correctionTip.isNotEmpty) {
-            poseTip = correctionTip;
-            flutterTts.speak(poseTip);
-            await Future.delayed(Duration(seconds: 4));
-            setState(() {});
-            await Future.delayed(Duration(milliseconds: 700));
-            await _checkPose(poseIndex);
+          //直到提示不同才做語音提醒
+          if (correctionTip != poseTip) {
+            if (correctionTip.isNotEmpty) {
+              // 如果需要修正,提供修正建議並重試當前階段
+              poseTip = correctionTip;
+              flutterTts.speak(poseTip);
+              await Future.delayed(Duration(seconds: 6));
+              setState(() {});
+              await Future.delayed(Duration(milliseconds: 700));
+              await _checkPose(poseIndex);
+            } else {
+              // 如果不需要修正,執行原有的姿勢檢查邏輯
+              result = await TreePoseTwoPass(angles);
+              poseTipText = '這是 Tree Pose 1';
+            }
+            break;
           } else {
-            result = await TreePoseTwoPass(angles);
-            poseTipText = 'This is TreePose1';
+            //不然就等一下再檢查一次
+            await Future.delayed(Duration(seconds: 2));
+            poseTipText = '這是 Tree Pose 1';
+            break;
           }
-          break;
         case 2:
           // 檢查第三個樹式姿勢是否需要修正
           correctionTip = checkTreePoseThreeNeedsCorrection(angles);
-          if (correctionTip.isNotEmpty) {
-            poseTip = correctionTip;
-            flutterTts.speak(poseTip);
-            await Future.delayed(Duration(seconds: 4));
-            setState(() {});
-            await Future.delayed(Duration(milliseconds: 700));
-            await _checkPose(poseIndex);
+          //直到提示不同才做語音提醒
+          if (correctionTip != poseTip) {
+            if (correctionTip.isNotEmpty) {
+              // 如果需要修正,提供修正建議並重試當前階段
+              poseTip = correctionTip;
+              flutterTts.speak(poseTip);
+              await Future.delayed(Duration(seconds: 6));
+              setState(() {});
+              await Future.delayed(Duration(milliseconds: 700));
+              await _checkPose(poseIndex);
+            } else {
+              // 如果不需要修正,執行原有的姿勢檢查邏輯
+              result = await TreePoseThreePass(angles);
+              poseTipText = '這是 Tree Pose 2';
+            }
+            break;
           } else {
-            result = await TreePoseThreePass(angles);
-            poseTipText = 'This is TreePose2';
+            //不然就等一下再檢查一次
+            await Future.delayed(Duration(seconds: 2));
+            poseTipText = '這是 Tree Pose 2';
+            break;
           }
-          break;
         default:
           return;
       }
