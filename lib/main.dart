@@ -1,5 +1,7 @@
+// main.dart
+
 import 'package:flutter/material.dart';
-import 'package:test_pose_detector/pose.dart';
+import 'package:test_pose_detector/pose_selection_page.dart';
 import 'package:camera/camera.dart';
 
 void main() {
@@ -16,8 +18,9 @@ class MyApp extends StatelessWidget {
         future: availableCameras(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.done) {
-            return CameraScreen(
-                cameras: snapshot.data as List<CameraDescription>);
+            return PoseSelectionPage(
+              cameras: snapshot.data as List<CameraDescription>,
+            );
           } else {
             return const CircularProgressIndicator();
           }
